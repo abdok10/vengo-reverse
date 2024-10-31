@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import axios from "./lib/axios";
+// import axios from "./lib/axios";
 import Login from "./Login";
 import FormBuilder from "./FormBuilder";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [formSchema, setFormSchema] = useState(null);
+  // const [formSchema, setFormSchema] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
