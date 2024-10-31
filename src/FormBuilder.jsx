@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 // import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Trash2, PlusCircle } from "lucide-react";
+import axios from "./lib/axios";
 
 // Field types
 // const FieldType = {
@@ -138,33 +139,55 @@ const FormSchemaBuilder = () => {
       .filter((option) => option !== "");
   };
 
-  
-  const generateSchema = () => {
-    const schema = {
-      name: formName,
-      description: formDescription,
-      account_id: 1, 
-      template: sections.map((section) => ({
-        section_name: section.name,
-        required: section.required,
-        reservation_status_name: section.reservation_status_name,
-        reservation_status_id: section.reservation_status_id,
-        fields: section.fields.map((field, index) => ({
-          field_id: index + 1,
-          name: field.name,
-          type: field.type,
-          options:
-            field.type === "select" || field.type === "checkbox"
-              ? processCustomOptions(field.customOptions)
-              : field.options,
-          required: field.required,
-          reservation_status_name: field.reservation_status_name,
-          reservation_status_id: field.reservation_status_id,
+  const handleGenerateSchema = async () => {
+    try {
+      const schema = {
+        name: formName,
+        description: formDescription,
+        account_id: 1,
+        template: sections.map((section) => ({
+          section_name: section.name,
+          required: section.required,
+          reservation_status_name: section.reservation_status_name,
+          reservation_status_id: section.reservation_status_id,
+          fields: section.fields.map((field, index) => ({
+            field_id: index + 1,
+            name: field.name,
+            type: field.type,
+            options:
+              field.type === "select" || field.type === "checkbox"
+                ? processCustomOptions(field.customOptions)
+                : field.options,
+            required: field.required,
+            reservation_status_name: field.reservation_status_name,
+            reservation_status_id: field.reservation_status_id,
+          })),
         })),
-      })),
-    };
+      };
 
-    setGeneratedSchema(schema);
+      setGeneratedSchema(schema);
+      console.log("Generated Schema:", schema);
+
+      const token =
+        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8veGFwaS52ZW5nb3Jlc2VydmUuY29tL2FwaS9uZXdsb2dpbiIsImlhdCI6MTczMDM5MzMyMywiZXhwIjoxNzMxNDczMzIzLCJuYmYiOjE3MzAzOTMzMjMsImp0aSI6IjVCZTRCUkxtYUE2eUVVTXIiLCJzdWIiOiIxNCIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJ1c2VyIjoxNCwidXNlcl9maXJzdF9uYW1lIjoiZmlyc3ROYW1lIiwidXNlcl9sYXN0X25hbWUiOiJsYXN0TmFtZSJ9.k5Z1DruMSOO1kQVO7AAOdv6oDUkRwX7ajMS0hgK1TCo";
+
+      const response = await axios.post(
+        "/create/form",
+        {
+          schema: schema,
+        },
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("Form created successfully:", response.data);
+    } catch (error) {
+      console.error("Error creating form:", error);
+    }
   };
 
   return (
@@ -372,7 +395,7 @@ const FormSchemaBuilder = () => {
             </Button>
 
             {/* Generate Schema Button */}
-            <Button onClick={generateSchema} className="mt-4">
+            <Button onClick={handleGenerateSchema} className="mt-4">
               Generate Schema
             </Button>
           </div>

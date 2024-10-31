@@ -1,20 +1,12 @@
-import Axios from "axios";
+import axios from 'axios';
 
-const axios = Axios.create({
-  baseURL: "http://xapi.vengoreserve.com/api",
-  headers: {
-    "X-Requested-With": "XMLHttpRequest",
-  },
-  withCredentials: true,
-  withXSRFToken: true,
+const instance = axios.create({
+    baseURL: 'http://xapi.vengoreserve.com/api',
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+    }
 });
 
-axios.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-export default axios;
+export default instance;
