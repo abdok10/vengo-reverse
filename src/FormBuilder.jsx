@@ -173,17 +173,14 @@ const FormSchemaBuilder = ({ handleLogout }) => {
       setIsSubmitting(true);
       const schema = await handleGenerateSchema();
 
-      const response = await fetch(
-        `http://xapi.vengoreserve.com/api/create/form`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(schema),
-        }
-      );
+      const response = await fetch(`//xapi.vengoreserve.com/api/create/form`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(schema),
+      });
 
       const data = await response.json();
 

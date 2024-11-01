@@ -15,7 +15,7 @@ function Login({ setIsLoggedIn }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`http://xapi.vengoreserve.com/api/login`, {
+      const response = await fetch(`//xapi.vengoreserve.com/api/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
