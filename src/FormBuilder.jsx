@@ -19,6 +19,13 @@ import {
   processCustomOptions,
   validateSchema,
 } from "./lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { InfoIcon } from "lucide-react";
 
 const FormSchemaBuilder = ({ handleLogout }) => {
   const [formName, setFormName] = useState("");
@@ -256,96 +263,110 @@ const FormSchemaBuilder = ({ handleLogout }) => {
             <Card key={sectionIndex} className="mb-4 bg-gray-50">
               <CardContent className="py-2">
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-2 w-full">
+                  <div className="flex items-center justify-between space-x-2 w-full">
+                    <div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleSection(sectionIndex)}
+                        className="p-1 hover:bg-gray-200 rounded-full"
+                      >
+                        {expandedSections[sectionIndex] ? (
+                          <ChevronDown className="h-5 w-5" />
+                        ) : (
+                          <ChevronRight className="h-5 w-5" />
+                        )}
+                      </Button>
+                      <span className="font-semibold text-lg text-sky-700">
+                        {section.name}
+                      </span>
+                    </div>
+
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleSection(sectionIndex)}
-                      className="p-1 hover:bg-gray-200 rounded-full"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => removeSection(sectionIndex)}
                     >
-                      {expandedSections[sectionIndex] ? (
-                        <ChevronDown className="h-5 w-5" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5" />
-                      )}
+                      <Trash2 className="size-4" />
                     </Button>
-                    <span className="font-semibold text-lg text-sky-700">
-                      {section.name}
-                    </span>
-                    <br />
                   </div>
                 </div>
-                <div className="flex items-center space-x-2 w-full my-2">
-                  {expandedSections[sectionIndex] && (
-                    <>
-                      <Input
-                        value={section.name}
-                        onChange={(e) => {
+                {expandedSections[sectionIndex] && (
+                  <div className="flex items-center space-x-2 w-full mt-2">
+                    <Input
+                      value={section.name}
+                      onChange={(e) => {
+                        const newSections = [...sections];
+                        newSections[sectionIndex].name = e.target.value;
+                        setSections(newSections);
+                      }}
+                      placeholder="Section Name"
+                      className="flex-grow bg-white"
+                    />
+                    <Select
+                      value={section.reservation_status_id}
+                      onValueChange={(value) => {
+                        const newSections = [...sections];
+                        const selectedStatus = RESERVATION_STATUSES.find(
+                          (status) => status.id === value
+                        );
+                        newSections[sectionIndex].reservation_status_id = value;
+                        newSections[sectionIndex].reservation_status_name =
+                          selectedStatus.name;
+                        setSections(newSections);
+                      }}
+                    >
+                      <SelectTrigger className="w-[180px] bg-white">
+                        <SelectValue placeholder="Section Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RESERVATION_STATUSES.map((status) => (
+                          <SelectItem key={status.id} value={status.id}>
+                            {status.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={section.required}
+                        onCheckedChange={(checked) => {
                           const newSections = [...sections];
-                          newSections[sectionIndex].name = e.target.value;
+                          newSections[sectionIndex].required = checked;
+
+                          if (checked) {
+                            newSections[sectionIndex].fields = newSections[
+                              sectionIndex
+                            ].fields.map((field) => ({
+                              ...field,
+                              required: true,
+                            }));
+                          }
+
                           setSections(newSections);
                         }}
-                        placeholder="Section Name"
-                        className="flex-grow bg-white"
                       />
-                      <Select
-                        value={section.reservation_status_id}
-                        onValueChange={(value) => {
-                          const newSections = [...sections];
-                          const selectedStatus = RESERVATION_STATUSES.find(
-                            (status) => status.id === value
-                          );
-                          newSections[sectionIndex].reservation_status_id =
-                            value;
-                          newSections[sectionIndex].reservation_status_name =
-                            selectedStatus.name;
-                          setSections(newSections);
-                        }}
-                      >
-                        <SelectTrigger className="w-[180px] bg-white">
-                          <SelectValue placeholder="Section Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {RESERVATION_STATUSES.map((status) => (
-                            <SelectItem key={status.id} value={status.id}>
-                              {status.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          checked={section.required}
-                          onCheckedChange={(checked) => {
-                            const newSections = [...sections];
-                            newSections[sectionIndex].required = checked;
-
-                            if (checked) {
-                              newSections[sectionIndex].fields = newSections[
-                                sectionIndex
-                              ].fields.map((field) => ({
-                                ...field,
-                                required: true,
-                              }));
-                            }
-
-                            setSections(newSections);
-                          }}
-                        />
-                        <Label>Required</Label>
-                      </div>
-
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => removeSection(sectionIndex)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
+                      <Label>Required</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <InfoIcon className="h-4 w-4 text-gray-500 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              When a section is marked as required,
+                              <br />
+                              all fields within it will automatically
+                              <br />
+                              become required
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+                )}
 
                 {expandedSections[sectionIndex] && (
                   <>
@@ -521,13 +542,24 @@ const FormSchemaBuilder = ({ handleLogout }) => {
 
                               <div className="flex items-center space-x-2">
                                 <Checkbox
-                                  checked={field.required}
-                                  disabled={section.required}
-                                  onCheckedChange={(checked) =>
-                                    updateField(sectionIndex, fieldIndex, {
-                                      required: checked,
-                                    })
-                                  }
+                                  checked={section.required || field.required}
+                                  // disabled={section.required}
+                                  onCheckedChange={(checked) => {
+                                    const newSections = [...sections];
+                                    newSections[sectionIndex].fields[
+                                      fieldIndex
+                                    ].required = checked;
+
+                                    const allFieldsRequired = newSections[
+                                      sectionIndex
+                                    ].fields.every((field) => field.required);
+
+                                    if (allFieldsRequired) {
+                                      newSections[sectionIndex].required = true;
+                                    }
+
+                                    setSections(newSections);
+                                  }}
                                 />
                                 <Label>Required</Label>
                               </div>
