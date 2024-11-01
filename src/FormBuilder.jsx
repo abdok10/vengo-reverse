@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { InfoIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { API_CONFIG } from "@/config";
 
 const FormSchemaBuilder = ({ handleLogout }) => {
   const [formName, setFormName] = useState("");
@@ -98,7 +99,7 @@ const FormSchemaBuilder = ({ handleLogout }) => {
     try {
       let currentFieldId = 1;
 
-      sections.forEach((section, idx) => {
+      sections.forEach((section) => {
         if (section.required) {
           const nonRequiredFields = section.fields.filter(
             (field) => !field.required
@@ -173,7 +174,8 @@ const FormSchemaBuilder = ({ handleLogout }) => {
       const schema = await handleGenerateSchema();
 
       const response = await fetch(
-        "http://xapi.vengoreserve.com/api/create/form",
+        `${API_CONFIG.baseUrl}/create/form`,
+        // "http://xapi.vengoreserve.com/api/create/form",
         {
           method: "POST",
           headers: {
