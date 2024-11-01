@@ -14,27 +14,24 @@ function Login({ setIsLoggedIn }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        "http://xapi.vengoreserve.com/api/newlogin",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        }
-      );
+      const response = await fetch("http://xapi.vengoreserve.com/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
       const data = await response.json();
 
-      const { access_token } = data;
-      if (!access_token) {
+      const { token } = data;
+      if (!token) {
         throw new Error("No token received from server");
       }
 
-      localStorage.setItem("token", access_token);
+      localStorage.setItem("token", token);
       setIsLoggedIn(true);
       navigate("/form-builder");
     } catch (err) {
