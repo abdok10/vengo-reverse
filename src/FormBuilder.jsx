@@ -62,7 +62,7 @@ const FormSchemaBuilder = ({ handleLogout }) => {
     setSections((prevSections) => {
       const newSections = [...prevSections];
       const isParentRequired = newSections[sectionIndex].required;
-      
+
       newSections[sectionIndex].fields.push({
         name: `Field ${newSections[sectionIndex].fields.length + 1}`,
         type: "text",
@@ -174,7 +174,7 @@ const FormSchemaBuilder = ({ handleLogout }) => {
       const schema = await handleGenerateSchema();
 
       const response = await fetch(
-        `${API_CONFIG.baseUrl}/create/form`,
+        `http://xapi.vengoreserve.com/api/create/form`,
         {
           method: "POST",
           headers: {
@@ -189,22 +189,29 @@ const FormSchemaBuilder = ({ handleLogout }) => {
 
       if (!response.ok) {
         if (response.status === 409) {
-          throw new Error(data.message || "A form with this name already exists");
+          throw new Error(
+            data.message || "A form with this name already exists"
+          );
         }
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          data.message || `HTTP error! status: ${response.status}`
+        );
       }
 
       // Store the schema and form data in localStorage
-      localStorage.setItem('currentFormSchema', JSON.stringify({
-        schema,
-        formData: data,
-        timestamp: new Date().toISOString()
-      }));
+      localStorage.setItem(
+        "currentFormSchema",
+        JSON.stringify({
+          schema,
+          formData: data,
+          timestamp: new Date().toISOString(),
+        })
+      );
 
       toast.success("Form submitted successfully");
 
-      console.log({ data })
-      const formId = data.id || 'new';
+      console.log({ data });
+      const formId = data.id || "new";
       navigate(`/form-display/${formId}`);
 
       setFormName("");
@@ -350,14 +357,16 @@ const FormSchemaBuilder = ({ handleLogout }) => {
                         onCheckedChange={(checked) => {
                           const newSections = [...sections];
                           newSections[sectionIndex].required = checked;
-                          
+
                           if (checked) {
-                            newSections[sectionIndex].fields = newSections[sectionIndex].fields.map((field) => ({
+                            newSections[sectionIndex].fields = newSections[
+                              sectionIndex
+                            ].fields.map((field) => ({
                               ...field,
                               required: true,
                             }));
                           }
-                          
+
                           setSections(newSections);
                         }}
                       />
@@ -559,12 +568,15 @@ const FormSchemaBuilder = ({ handleLogout }) => {
                                   checked={field.required}
                                   onCheckedChange={(checked) => {
                                     const newSections = [...sections];
-                                    newSections[sectionIndex].fields[fieldIndex].required = checked;
+                                    newSections[sectionIndex].fields[
+                                      fieldIndex
+                                    ].required = checked;
 
-                                    const allFieldsRequired = newSections[sectionIndex].fields.every(
-                                      (field) => field.required
-                                    );
-                                    newSections[sectionIndex].required = allFieldsRequired;
+                                    const allFieldsRequired = newSections[
+                                      sectionIndex
+                                    ].fields.every((field) => field.required);
+                                    newSections[sectionIndex].required =
+                                      allFieldsRequired;
 
                                     setSections(newSections);
                                   }}
