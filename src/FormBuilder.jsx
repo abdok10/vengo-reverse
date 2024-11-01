@@ -174,8 +174,7 @@ const FormSchemaBuilder = ({ handleLogout }) => {
       const schema = await handleGenerateSchema();
 
       const response = await fetch(
-        `${API_CONFIG.baseUrl}/create/form`,
-        // "http://xapi.vengoreserve.com/api/create/form",
+        `https://xapi.vengoreserve.com/api/create/form`,
         {
           method: "POST",
           headers: {
