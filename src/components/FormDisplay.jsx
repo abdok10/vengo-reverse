@@ -62,14 +62,14 @@ const FormDisplay = ({ handleLogout }) => {
         form_name: storedForm.schema.name,
         form_description: storedForm.schema.description,
         account_id: storedForm.schema.account_id,
-        template: storedForm.schema.template.map((section) => ({
+        template: storedForm.schema.template.map((section, sectionIndex) => ({
           section_name: section.section_name,
           fields: section.fields.map((field) => ({
             field_name: field.name,
             type: field.type,
             required: field.required,
             options: field.options,
-            value: formData[`section${sectionIndex}-${field.section_name}-${field.name}`],
+            value: formData[`section${sectionIndex}-${section.section_name}-${field.name}`],
           })),
         })),
       };
