@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
 function Login({ setIsLoggedIn }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -14,7 +16,7 @@ function Login({ setIsLoggedIn }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://xapi.vengoreserve.com/api/login", {
+      const response = await fetch(`${baseUrl}/api/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -25,6 +27,7 @@ function Login({ setIsLoggedIn }) {
         }),
       });
       const data = await response.json();
+      console.log({data})
 
       const { token } = data;
       if (!token) {
