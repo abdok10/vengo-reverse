@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-const baseUrl = import.meta.env.VITE_API_BASE_URL;
+import { API_CONFIG } from '@/config';
 
 function Login({ setIsLoggedIn }) {
   const navigate = useNavigate();
@@ -16,7 +15,7 @@ function Login({ setIsLoggedIn }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`/api/login`, {
+      const response = await fetch(`${API_CONFIG.baseUrl}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
