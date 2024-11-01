@@ -16,8 +16,7 @@ function Login({ setIsLoggedIn }) {
     setIsLoading(true);
 
     try {
-      console.log({ baseUrl });
-      const response = await fetch(`${baseUrl}/api/login`, {
+      const response = await fetch(`/api/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

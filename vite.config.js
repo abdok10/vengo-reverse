@@ -20,7 +20,7 @@ export default defineConfig({
       "/api": {
         target: "http://xapi.vengoreserve.com",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
       },
     },
   },
