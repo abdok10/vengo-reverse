@@ -1,44 +1,51 @@
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-// import axios from "./lib/axios";
 import Login from "./Login";
 import FormBuilder from "./FormBuilder";
+import { Toaster } from "@/components/ui/sonner"
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  // const [formSchema, setFormSchema] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       setIsLoggedIn(true);
-      fetchFormSchema();
     }
   }, []);
 
-  const fetchFormSchema = async () => {};
-
-  const handleLogout = () => {};
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setIsLoggedIn(false);
+  };
 
   return (
-    <div>
-      {isLoggedIn ? (
-        <div className="py-2 container mx-auto">
-          <nav className="flex items-center justify-between ">
-            <h1 className="font-bold text-2xl">Vengo Reverse </h1>
-
-            <button
-              className="bg-red-500 text-white p-2 rounded-md"
-              onClick={handleLogout}
-            >
-              Logout
-            </button>
-          </nav>
-          <FormBuilder />
-        </div>
-      ) : (
-        <Login setIsLoggedIn={setIsLoggedIn} />
-      )}
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            isLoggedIn ? (
+              <Navigate to="/dashboard" />
+            ) : (
+              <Login setIsLoggedIn={setIsLoggedIn} />
+            )
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            isLoggedIn ? (
+              <FormBuilder handleLogout={handleLogout} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route path="/" element={<Navigate to="/dashboard" />} />
+      </Routes>
+      <Toaster />
+    </BrowserRouter>
   );
 }
 

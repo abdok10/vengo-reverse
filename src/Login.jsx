@@ -1,8 +1,10 @@
 import { useState } from "react";
-import axios from "./lib/axios";
+// import axios from "./lib/axios";
 // import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-function Login() {
+function Login({ setIsLoggedIn }) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -17,21 +19,41 @@ function Login() {
     });
 
     try {
-      const response = await axios.post("/newlogin", {
-        email,
-        password,
+      // const response = await axios.post("/newlogin", {
+      //   email,
+      //   password,
+      // });
+      const response = await fetch("http://xapi.vengoreserve.com/api/newlogin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
       });
+      const data = await response.json();
 
       console.log("Teeest");
-      console.log({ response });
+      console.log({ data });
+      
+      // if (data.access_token) {
+      //   // Store the access_token in localStorage
+      //   localStorage.setItem("token", data.access_token);
+      //   // Redirect or reload the page
+      //   // setLoading(false);
+      //   // navigate("/");
+      // }
 
-      const { access_token } = response.data;
+      const { access_token } = data;
       if (!access_token) {
         throw new Error("No token received from server");
       }
 
       localStorage.setItem("token", access_token);
-      window.location.href = '/dashboard';
+      setIsLoggedIn(true);
+      navigate("/dashboard");
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||

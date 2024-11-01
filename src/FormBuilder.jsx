@@ -1,4 +1,3 @@
-// import { useEffect } from "react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,80 +11,29 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-// import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Trash2, PlusCircle } from "lucide-react";
-import axios from "./lib/axios";
-import Login from "./Login";
+import { Trash2, PlusCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
+import {
+  RESERVATION_STATUSES,
+  FIELD_TYPES,
+  processCustomOptions,
+  validateSchema,
+} from "./lib/utils";
 
-// Field types
-// const FieldType = {
-//   TEXT: "text",
-//   NUMBER: "number",
-//   SELECT: "select",
-//   RADIO: "radio",
-//   CHECKBOX: "checkbox",
-//   DATE: "date",
-//   TEXTAREA: "textarea",
-// };
-
-const FormSchemaBuilder = ({ setIsLoggedIn }) => {
+const FormSchemaBuilder = ({ handleLogout }) => {
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [sections, setSections] = useState([]);
   const [generatedSchema, setGeneratedSchema] = useState(null);
-  const [currentView, setCurrentView] = useState("login");
-  // Reservation Status Options
-  const RESERVATION_STATUSES = [
-    { id: "1", name: "active" },
-    { id: "2", name: "inactive" },
-    { id: "3", name: "pending" },
-  ];
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [accountId, setAccountId] = useState(1);
+  const [expandedSections, setExpandedSections] = useState({});
 
-  // Field type configurations
-  const FIELD_TYPES = [
-    {
-      value: "text",
-      options: ["short", "long"],
-      hasCustomOptions: false,
-    },
-    {
-      value: "number",
-      options: ["integer", "decimal"],
-      hasCustomOptions: false,
-    },
-    {
-      value: "email",
-      options: [],
-      hasCustomOptions: false,
-    },
-    {
-      value: "date",
-      options: ["past", "future", "any"],
-      hasCustomOptions: false,
-    },
-    {
-      value: "select",
-      options: [],
-      hasCustomOptions: true,
-    },
-    {
-      value: "checkbox",
-      options: [],
-      hasCustomOptions: true,
-    },
-    {
-      value: "file",
-      options: ["image", "document", "any"],
-      hasCustomOptions: false,
-    },
-  ];
-
-  // Add a new section
   const addSection = () => {
-    setSections([
-      ...sections,
+    setSections((prevSections) => [
+      ...prevSections,
       {
-        name: `Section ${sections.length + 1}`,
+        name: `Section ${prevSections.length + 1}`,
         fields: [],
         required: false,
         reservation_status_name: "active",
@@ -94,330 +42,562 @@ const FormSchemaBuilder = ({ setIsLoggedIn }) => {
     ]);
   };
 
-  // Remove a section
   const removeSection = (sectionIndex) => {
-    const newSections = sections.filter((_, index) => index !== sectionIndex);
-    setSections(newSections);
+    setSections((prevSections) =>
+      prevSections.filter((_, index) => index !== sectionIndex)
+    );
   };
 
-  // Add a field to a specific section
   const addField = (sectionIndex) => {
-    const newSections = [...sections];
-    newSections[sectionIndex].fields.push({
-      name: `Field ${newSections[sectionIndex].fields.length + 1}`,
-      type: "text",
-      required: false,
-      options: [],
-      customOptions: "",
-      reservation_status_name: "active",
-      reservation_status_id: "2",
+    setSections((prevSections) => {
+      const newSections = [...prevSections];
+      newSections[sectionIndex].fields.push({
+        name: `Field ${newSections[sectionIndex].fields.length + 1}`,
+        type: "text",
+        required: false,
+        options: "short",
+        customOptions: "",
+        reservation_status_name: "active",
+        reservation_status_id: "1",
+      });
+      return newSections;
     });
-    setSections(newSections);
   };
 
-  // Remove a field from a section
   const removeField = (sectionIndex, fieldIndex) => {
-    const newSections = [...sections];
-    newSections[sectionIndex].fields.splice(fieldIndex, 1);
-    setSections(newSections);
+    setSections((prevSections) => {
+      const newSections = [...prevSections];
+      newSections[sectionIndex].fields.splice(fieldIndex, 1);
+      return newSections;
+    });
   };
 
-  // Update field properties
   const updateField = (sectionIndex, fieldIndex, updates) => {
-    const newSections = [...sections];
-    newSections[sectionIndex].fields[fieldIndex] = {
-      ...newSections[sectionIndex].fields[fieldIndex],
-      ...updates,
-    };
-    setSections(newSections);
-  };
-
-  // Process custom options for select and checkbox
-  const processCustomOptions = (optionsString) => {
-    return optionsString
-      .split(",")
-      .map((option) => option.trim())
-      .filter((option) => option !== "");
+    setSections((prevSections) => {
+      const newSections = [...prevSections];
+      newSections[sectionIndex].fields[fieldIndex] = {
+        ...newSections[sectionIndex].fields[fieldIndex],
+        ...updates,
+      };
+      return newSections;
+    });
   };
 
   const handleGenerateSchema = async () => {
     try {
+      let currentFieldId = 1;
+
+      sections.forEach((section, idx) => {
+        if (section.required) {
+          const nonRequiredFields = section.fields.filter(
+            (field) => !field.required
+          );
+          if (nonRequiredFields.length > 0) {
+            throw new Error(
+              `All fields in required section "${section.name}" must be marked as required`
+            );
+          }
+        }
+      });
+
       const schema = {
-        name: formName,
-        description: formDescription,
-        account_id: 1,
+        name: formName.trim(),
+        description: formDescription.trim() || null,
+        account_id: parseInt(accountId),
         template: sections.map((section) => ({
-          section_name: section.name,
-          required: section.required,
-          reservation_status_name: section.reservation_status_name,
+          section_name: section.name.trim(),
+          required: Boolean(section.required),
+          reservation_status_name: section.reservation_status_name || "active",
           reservation_status_id: section.reservation_status_id,
-          fields: section.fields.map((field, index) => ({
-            field_id: index + 1,
-            name: field.name,
-            type: field.type,
-            options:
-              field.type === "select" || field.type === "checkbox"
-                ? processCustomOptions(field.customOptions)
-                : field.options,
-            required: field.required,
-            reservation_status_name: field.reservation_status_name,
-            reservation_status_id: field.reservation_status_id,
-          })),
+          fields: section.fields.map((field) => {
+            const fieldType = FIELD_TYPES.find((t) => t.value === field.type);
+            let options = [];
+
+            if (field.type === "select" || field.type === "checkbox") {
+              options = processCustomOptions(field.customOptions);
+            } else if (fieldType && fieldType.options.length > 0) {
+              options = fieldType.options;
+            }
+
+            return {
+              field_id: currentFieldId++,
+              name: field.name.trim(),
+              type: field.type,
+              options: options,
+              required: Boolean(field.required),
+              reservation_status_name:
+                field.reservation_status_name || "active",
+              reservation_status_id: field.reservation_status_id,
+            };
+          }),
         })),
       };
 
+      validateSchema(schema);
       setGeneratedSchema(schema);
-      console.log("Generated Schema:", schema);
-
-      const response = await axios.post(
-        "/create/form",
-        {
-          schema: schema,
-        },
-        {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      console.log("Form created successfully:", response.data);
+      toast.success("Schema generated successfully");
+      return schema;
     } catch (error) {
-      console.error("Error creating form:", error);
+      toast.error(error.message || "Failed to generate schema");
+      console.error("Error generating schema:", error);
+      throw error;
     }
   };
 
+  const handleSendRequest = async () => {
+    try {
+      if (!formName.trim()) {
+        toast.error("Form name is required");
+        return;
+      }
+
+      let token = localStorage.getItem("token")?.replace("Bearer ", "");
+      if (!token) {
+        toast.error("Please login again");
+        handleLogout();
+        return;
+      }
+
+      setIsSubmitting(true);
+      const schema = await handleGenerateSchema();
+
+      const response = await fetch(
+        "http://xapi.vengoreserve.com/api/create/form",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(schema),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+      toast.success("Form submitted successfully");
+      console.log("Form submitted successfully:", data);
+
+      setFormName("");
+      setFormDescription("");
+      setSections([]);
+      setGeneratedSchema(null);
+    } catch (error) {
+      toast.error(error.message || "Failed to submit form");
+      console.error("Error submitting form:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleSection = (sectionIndex) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [sectionIndex]: !prev[sectionIndex],
+    }));
+  };
+
   return (
-    <>
-      {currentView === "login" ? (
-        <Login />
-      ) : (
-        <div className="container mx-auto p-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Form Schema Builder</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Form Details */}
-              <div className="mb-4 grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Form Name</Label>
-                  <Input
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    placeholder="Enter form name"
-                  />
-                </div>
-                <div>
-                  <Label>Form Description</Label>
-                  <Input
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    placeholder="Enter form description"
-                  />
-                </div>
-              </div>
+    <div className="container mx-auto p-4">
+      <div className="flex justify-end mb-4">
+        <div className="text-3xl font-bold text-sky-700">Vengo Reverse</div>
+        <Button
+          variant="destructive"
+          onClick={handleLogout}
+          className="ml-auto"
+        >
+          Logout
+        </Button>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Form Schema Builder</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 grid grid-cols-2 gap-4">
+            <div>
+              <Label>Form Name</Label>
+              <Input
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="Enter form name"
+                className="bg-white"
+              />
+            </div>
+            <div>
+              <Label>Form Description</Label>
+              <Input
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                placeholder="Enter form description"
+                className="bg-white"
+              />
+            </div>
+          </div>
+          <div className="mb-4">
+            <Label>Account ID (1-10)</Label>
+            <Input
+              type="number"
+              min="1"
+              max="10"
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              className="w-32 bg-white"
+            />
+          </div>
 
-              {/* Sections */}
-              {sections.map((section, sectionIndex) => (
-                <Card key={sectionIndex} className="mb-4">
-                  <CardContent>
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="flex items-center space-x-2 w-full">
-                        <Input
-                          value={section.name}
-                          onChange={(e) => {
+          {sections.map((section, sectionIndex) => (
+            <Card key={sectionIndex} className="mb-4 bg-gray-50">
+              <CardContent className="py-2">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2 w-full">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleSection(sectionIndex)}
+                      className="p-1 hover:bg-gray-200 rounded-full"
+                    >
+                      {expandedSections[sectionIndex] ? (
+                        <ChevronDown className="h-5 w-5" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5" />
+                      )}
+                    </Button>
+                    <span className="font-semibold text-lg text-sky-700">
+                      {section.name}
+                    </span>
+                    <br />
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 w-full my-2">
+                  {expandedSections[sectionIndex] && (
+                    <>
+                      <Input
+                        value={section.name}
+                        onChange={(e) => {
+                          const newSections = [...sections];
+                          newSections[sectionIndex].name = e.target.value;
+                          setSections(newSections);
+                        }}
+                        placeholder="Section Name"
+                        className="flex-grow bg-white"
+                      />
+                      <Select
+                        value={section.reservation_status_id}
+                        onValueChange={(value) => {
+                          const newSections = [...sections];
+                          const selectedStatus = RESERVATION_STATUSES.find(
+                            (status) => status.id === value
+                          );
+                          newSections[sectionIndex].reservation_status_id =
+                            value;
+                          newSections[sectionIndex].reservation_status_name =
+                            selectedStatus.name;
+                          setSections(newSections);
+                        }}
+                      >
+                        <SelectTrigger className="w-[180px] bg-white">
+                          <SelectValue placeholder="Section Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {RESERVATION_STATUSES.map((status) => (
+                            <SelectItem key={status.id} value={status.id}>
+                              {status.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={section.required}
+                          onCheckedChange={(checked) => {
                             const newSections = [...sections];
-                            newSections[sectionIndex].name = e.target.value;
+                            newSections[sectionIndex].required = checked;
+
+                            if (checked) {
+                              newSections[sectionIndex].fields = newSections[
+                                sectionIndex
+                              ].fields.map((field) => ({
+                                ...field,
+                                required: true,
+                              }));
+                            }
+
                             setSections(newSections);
                           }}
-                          placeholder="Section Name"
-                          className="flex-grow"
                         />
-
-                        {/* Reservation Status for Section */}
-                        <Select
-                          value={section.reservation_status_id}
-                          onValueChange={(value) => {
-                            const newSections = [...sections];
-                            const selectedStatus = RESERVATION_STATUSES.find(
-                              (status) => status.id === value
-                            );
-                            newSections[sectionIndex].reservation_status_id =
-                              value;
-                            newSections[sectionIndex].reservation_status_name =
-                              selectedStatus.name;
-                            setSections(newSections);
-                          }}
-                        >
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Section Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {RESERVATION_STATUSES.map((status) => (
-                              <SelectItem key={status.id} value={status.id}>
-                                {status.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={section.required}
-                            onCheckedChange={(checked) => {
-                              const newSections = [...sections];
-                              newSections[sectionIndex].required = checked;
-                              setSections(newSections);
-                            }}
-                          />
-                          <Label>Required</Label>
-                        </div>
-
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => removeSection(sectionIndex)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <Label>Required</Label>
                       </div>
-                    </div>
 
-                    {/* Fields in Section */}
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => removeSection(sectionIndex)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {expandedSections[sectionIndex] && (
+                  <>
                     {section.fields.map((field, fieldIndex) => (
-                      <Card key={fieldIndex} className="mb-2 p-4 relative">
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2"
-                          onClick={() => removeField(sectionIndex, fieldIndex)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        <div className="grid grid-cols-3 gap-4">
-                          <Input
-                            value={field.name}
-                            onChange={(e) =>
-                              updateField(sectionIndex, fieldIndex, {
-                                name: e.target.value,
-                              })
-                            }
-                            placeholder="Field Name"
-                          />
+                      <Card key={fieldIndex} className="my-4 bg-gray-100">
+                        <CardContent className="py-4">
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-4">
+                              <Input
+                                value={field.name}
+                                onChange={(e) =>
+                                  updateField(sectionIndex, fieldIndex, {
+                                    name: e.target.value,
+                                  })
+                                }
+                                placeholder="Field Name"
+                                className="bg-white"
+                              />
 
-                          <Select
-                            value={field.type}
-                            onValueChange={(value) =>
-                              updateField(sectionIndex, fieldIndex, {
-                                type: value,
-                                options: [], // Reset options when type changes
-                                customOptions: "", // Reset custom options when type changes
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Field Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {FIELD_TYPES.map((type) => (
-                                <SelectItem key={type.value} value={type.value}>
-                                  {type.value}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                              <Select
+                                value={field.type}
+                                onValueChange={(value) => {
+                                  let defaultOptions = "";
+                                  if (value === "text")
+                                    defaultOptions = "short";
+                                  else if (value === "image")
+                                    defaultOptions = "URL";
+                                  else if (value === "date")
+                                    defaultOptions = "past";
 
-                          {/* Reservation Status for Field */}
-                          <Select
-                            value={field.reservation_status_id}
-                            onValueChange={(value) => {
-                              const selectedStatus = RESERVATION_STATUSES.find(
-                                (status) => status.id === value
-                              );
-                              updateField(sectionIndex, fieldIndex, {
-                                reservation_status_id: value,
-                                reservation_status_name: selectedStatus.name,
-                              });
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Field Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {RESERVATION_STATUSES.map((status) => (
-                                <SelectItem key={status.id} value={status.id}>
-                                  {status.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                                  updateField(sectionIndex, fieldIndex, {
+                                    type: value,
+                                    options: defaultOptions,
+                                    customOptions: "",
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="w-full bg-white">
+                                  <SelectValue placeholder="Field Type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {FIELD_TYPES.map((type) => (
+                                    <SelectItem
+                                      key={type.value}
+                                      value={type.value}
+                                    >
+                                      {type.value}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                          <div className="flex items-center">
-                            <Checkbox
-                              checked={field.required}
-                              onCheckedChange={(checked) =>
-                                updateField(sectionIndex, fieldIndex, {
-                                  required: checked,
-                                })
-                              }
-                            />
-                            <Label>Required</Label>
+                            {field.type === "text" && (
+                              <div className="space-y-2">
+                                <Label>Text Options</Label>
+                                <Select
+                                  value={field.options}
+                                  defaultValue="short"
+                                  onValueChange={(value) =>
+                                    updateField(sectionIndex, fieldIndex, {
+                                      options: value,
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className="w-full bg-white">
+                                    <SelectValue placeholder="Select a text option" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="short">Short</SelectItem>
+                                    <SelectItem value="long">Long</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+
+                            {field.type === "image" && (
+                              <div className="space-y-2">
+                                <Label>Image Options</Label>
+                                <Select
+                                  value={field.options}
+                                  defaultValue="URL"
+                                  onValueChange={(value) =>
+                                    updateField(sectionIndex, fieldIndex, {
+                                      options: value,
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className="w-full bg-white">
+                                    <SelectValue placeholder="Select an image option" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="URL">URL</SelectItem>
+                                    <SelectItem value="base64">
+                                      Base64
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+
+                            {field.type === "date" && (
+                              <div className="space-y-2">
+                                <Label>Date Options</Label>
+                                <Select
+                                  value={field.options}
+                                  defaultValue="past"
+                                  onValueChange={(value) =>
+                                    updateField(sectionIndex, fieldIndex, {
+                                      options: value,
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className="w-full bg-white">
+                                    <SelectValue placeholder="Select a date option" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="past">Past</SelectItem>
+                                    <SelectItem value="future">
+                                      Future
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+
+                            {(field.type === "select" ||
+                              field.type === "checkbox") && (
+                              <div className="space-y-2">
+                                <Label>Custom Options (comma-separated)</Label>
+                                <Input
+                                  value={field.customOptions}
+                                  onChange={(e) =>
+                                    updateField(sectionIndex, fieldIndex, {
+                                      customOptions: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Option 1, Option 2, Option 3"
+                                  className="bg-white"
+                                />
+                              </div>
+                            )}
+
+                            <div className="flex items-center space-x-2 pt-2">
+                              <Select
+                                value={field.reservation_status_id}
+                                onValueChange={(value) => {
+                                  const selectedStatus =
+                                    RESERVATION_STATUSES.find(
+                                      (status) => status.id === value
+                                    );
+                                  updateField(sectionIndex, fieldIndex, {
+                                    reservation_status_id: value,
+                                    reservation_status_name:
+                                      selectedStatus.name,
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="w-[180px] bg-white">
+                                  <SelectValue placeholder="Field Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {RESERVATION_STATUSES.map((status) => (
+                                    <SelectItem
+                                      key={status.id}
+                                      value={status.id}
+                                    >
+                                      {status.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  checked={field.required}
+                                  disabled={section.required}
+                                  onCheckedChange={(checked) =>
+                                    updateField(sectionIndex, fieldIndex, {
+                                      required: checked,
+                                    })
+                                  }
+                                />
+                                <Label>Required</Label>
+                              </div>
+
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={() =>
+                                  removeField(sectionIndex, fieldIndex)
+                                }
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-
-                        {/* Custom Options Input */}
-                        {(field.type === "select" ||
-                          field.type === "checkbox") && (
-                          <div className="mt-2">
-                            <Label>Custom Options (comma separated)</Label>
-                            <Input
-                              value={field.customOptions}
-                              onChange={(e) =>
-                                updateField(sectionIndex, fieldIndex, {
-                                  customOptions: e.target.value,
-                                })
-                              }
-                              placeholder="Option1, Option2, Option3"
-                            />
-                          </div>
-                        )}
+                        </CardContent>
                       </Card>
                     ))}
+
                     <Button
+                      variant="outline"
+                      className="w-full mt-4"
                       onClick={() => addField(sectionIndex)}
-                      className="mt-2"
                     >
-                      <PlusCircle className="mr-2 h-4 w-4" />
+                      <PlusCircle className="h-4 w-4 mr-2" />
                       Add Field
                     </Button>
-                  </CardContent>
-                </Card>
-              ))}
-              <div className="flex items-center gap-4">
-                <Button onClick={addSection} className="mt-4">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Section
-                </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          ))}
 
-                {/* Generate Schema Button */}
-                <Button onClick={handleGenerateSchema} className="mt-4">
-                  Generate Schema
-                </Button>
-              </div>
+          <Button
+            variant="outline"
+            className="w-full my-4"
+            onClick={addSection}
+          >
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add Section
+          </Button>
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="default"
+              onClick={handleGenerateSchema}
+              disabled={isSubmitting}
+            >
+              Generate Schema
+            </Button>
 
-              {/* Display Generated Schema */}
-              {generatedSchema && (
-                <pre className="mt-4 bg-gray-100 p-4 rounded-md">
+            <Button onClick={handleSendRequest} disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Send Request"}
+            </Button>
+          </div>
+
+          {generatedSchema && (
+            <Card className="my-4">
+              <CardHeader>
+                <CardTitle>Generated Schema</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="bg-gray-700 text-white p-4 rounded-lg overflow-auto max-h-96">
                   {JSON.stringify(generatedSchema, null, 2)}
                 </pre>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </>
+              </CardContent>
+            </Card>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
