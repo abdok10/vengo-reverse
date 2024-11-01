@@ -26,6 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { InfoIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const FormSchemaBuilder = ({ handleLogout }) => {
   const [formName, setFormName] = useState("");
@@ -35,6 +36,7 @@ const FormSchemaBuilder = ({ handleLogout }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accountId, setAccountId] = useState(1);
   const [expandedSections, setExpandedSections] = useState({});
+  const navigate = useNavigate();
 
   const addSection = () => {
     setSections((prevSections) => [
@@ -58,10 +60,12 @@ const FormSchemaBuilder = ({ handleLogout }) => {
   const addField = (sectionIndex) => {
     setSections((prevSections) => {
       const newSections = [...prevSections];
+      const isParentRequired = newSections[sectionIndex].required;
+      
       newSections[sectionIndex].fields.push({
         name: `Field ${newSections[sectionIndex].fields.length + 1}`,
         type: "text",
-        required: false,
+        required: isParentRequired,
         options: "short",
         customOptions: "",
         reservation_status_name: "active",
@@ -180,24 +184,35 @@ const FormSchemaBuilder = ({ handleLogout }) => {
         }
       );
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.message || `HTTP error! status: ${response.status}`
-        );
+        if (response.status === 409) {
+          throw new Error(data.message || "A form with this name already exists");
+        }
+        throw new Error(data.message || `HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      // Store the schema and form data in localStorage
+      localStorage.setItem('currentFormSchema', JSON.stringify({
+        schema,
+        formData: data,
+        timestamp: new Date().toISOString()
+      }));
+
       toast.success("Form submitted successfully");
-      console.log("Form submitted successfully:", data);
+
+      console.log({ data })
+      const formId = data.id || 'new';
+      navigate(`/form-display/${formId}`);
 
       setFormName("");
       setFormDescription("");
       setSections([]);
       setGeneratedSchema(null);
     } catch (error) {
-      toast.error(error.message || "Failed to submit form");
       console.error("Error submitting form:", error);
+      toast.error(error.message || "Failed to submit form");
     } finally {
       setIsSubmitting(false);
     }
@@ -334,16 +349,14 @@ const FormSchemaBuilder = ({ handleLogout }) => {
                         onCheckedChange={(checked) => {
                           const newSections = [...sections];
                           newSections[sectionIndex].required = checked;
-
+                          
                           if (checked) {
-                            newSections[sectionIndex].fields = newSections[
-                              sectionIndex
-                            ].fields.map((field) => ({
+                            newSections[sectionIndex].fields = newSections[sectionIndex].fields.map((field) => ({
                               ...field,
                               required: true,
                             }));
                           }
-
+                          
                           setSections(newSections);
                         }}
                       />
@@ -542,21 +555,15 @@ const FormSchemaBuilder = ({ handleLogout }) => {
 
                               <div className="flex items-center space-x-2">
                                 <Checkbox
-                                  checked={section.required || field.required}
-                                  // disabled={section.required}
+                                  checked={field.required}
                                   onCheckedChange={(checked) => {
                                     const newSections = [...sections];
-                                    newSections[sectionIndex].fields[
-                                      fieldIndex
-                                    ].required = checked;
+                                    newSections[sectionIndex].fields[fieldIndex].required = checked;
 
-                                    const allFieldsRequired = newSections[
-                                      sectionIndex
-                                    ].fields.every((field) => field.required);
-
-                                    if (allFieldsRequired) {
-                                      newSections[sectionIndex].required = true;
-                                    }
+                                    const allFieldsRequired = newSections[sectionIndex].fields.every(
+                                      (field) => field.required
+                                    );
+                                    newSections[sectionIndex].required = allFieldsRequired;
 
                                     setSections(newSections);
                                   }}

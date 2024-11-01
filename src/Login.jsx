@@ -34,18 +34,7 @@ function Login({ setIsLoggedIn }) {
         }),
       });
       const data = await response.json();
-
-      console.log("Teeest");
-      console.log({ data });
       
-      // if (data.access_token) {
-      //   // Store the access_token in localStorage
-      //   localStorage.setItem("token", data.access_token);
-      //   // Redirect or reload the page
-      //   // setLoading(false);
-      //   // navigate("/");
-      // }
-
       const { access_token } = data;
       if (!access_token) {
         throw new Error("No token received from server");
@@ -53,7 +42,7 @@ function Login({ setIsLoggedIn }) {
 
       localStorage.setItem("token", access_token);
       setIsLoggedIn(true);
-      navigate("/dashboard");
+      navigate("/form-builder");
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||

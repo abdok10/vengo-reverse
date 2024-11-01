@@ -2,22 +2,28 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Login from "./Login";
 import FormBuilder from "./FormBuilder";
-import { Toaster } from "@/components/ui/sonner"
+import FormDisplay from "./components/FormDisplay";
+import { Toaster } from "@/components/ui/sonner";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      setIsLoggedIn(true);
-    }
+    setIsLoggedIn(!!token);
+    setIsLoading(false);
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
   };
+
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <BrowserRouter>
@@ -26,25 +32,32 @@ function App() {
           path="/login"
           element={
             isLoggedIn ? (
-              <Navigate to="/dashboard" />
+              <Navigate to="/form-builder" replace />
             ) : (
               <Login setIsLoggedIn={setIsLoggedIn} />
             )
           }
         />
         <Route
-          path="/dashboard"
+          path="/form-builder"
           element={
-            isLoggedIn ? (
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
               <FormBuilder handleLogout={handleLogout} />
-            ) : (
-              <Navigate to="/login" />
-            )
+            </ProtectedRoute>
           }
         />
-        <Route path="/" element={<Navigate to="/dashboard" />} />
+        <Route
+          path="/form-display/:formId"
+          element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <FormDisplay handleLogout={handleLogout} />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/" element={<Navigate to="/form-builder" replace />} />
+        <Route path="*" element={<Navigate to="/form-builder" replace />} />
       </Routes>
-      <Toaster />
+      <Toaster position="top-center" richColors />
     </BrowserRouter>
   );
 }
