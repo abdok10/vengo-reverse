@@ -16,6 +16,7 @@ function Login({ setIsLoggedIn }) {
     setIsLoading(true);
 
     try {
+      console.log({ baseUrl });
       const response = await fetch(`${baseUrl}/api/login`, {
         method: "POST",
         headers: {
@@ -27,9 +28,10 @@ function Login({ setIsLoggedIn }) {
         }),
       });
       const data = await response.json();
-      console.log({data})
-
+      console.log({ data });
+      
       const { token } = data;
+      console.log({ token });
       if (!token) {
         throw new Error("No token received from server");
       }
