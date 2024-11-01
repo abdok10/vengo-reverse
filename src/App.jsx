@@ -21,7 +21,7 @@ function App() {
 
   return (
     <div>
-      {!isLoggedIn ? (
+      {isLoggedIn ? (
         <div className="py-2 container mx-auto">
           <nav className="flex items-center justify-between ">
             <h1 className="font-bold text-2xl">Vengo Reverse </h1>
@@ -36,7 +36,7 @@ function App() {
           <FormBuilder />
         </div>
       ) : (
-        <Login />
+        <Login setIsLoggedIn={setIsLoggedIn} />
       )}
     </div>
   );

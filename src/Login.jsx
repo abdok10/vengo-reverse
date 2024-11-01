@@ -31,6 +31,7 @@ function Login() {
       }
 
       localStorage.setItem("token", access_token);
+      window.location.href = '/dashboard';
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 // import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Trash2, PlusCircle } from "lucide-react";
 import axios from "./lib/axios";
+import Login from "./Login";
 
 // Field types
 // const FieldType = {
@@ -27,12 +28,12 @@ import axios from "./lib/axios";
 //   TEXTAREA: "textarea",
 // };
 
-const FormSchemaBuilder = () => {
+const FormSchemaBuilder = ({ setIsLoggedIn }) => {
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [sections, setSections] = useState([]);
   const [generatedSchema, setGeneratedSchema] = useState(null);
-
+  const [currentView, setCurrentView] = useState("login");
   // Reservation Status Options
   const RESERVATION_STATUSES = [
     { id: "1", name: "active" },
@@ -168,9 +169,6 @@ const FormSchemaBuilder = () => {
       setGeneratedSchema(schema);
       console.log("Generated Schema:", schema);
 
-      const token =
-        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8veGFwaS52ZW5nb3Jlc2VydmUuY29tL2FwaS9uZXdsb2dpbiIsImlhdCI6MTczMDM5MzMyMywiZXhwIjoxNzMxNDczMzIzLCJuYmYiOjE3MzAzOTMzMjMsImp0aSI6IjVCZTRCUkxtYUE2eUVVTXIiLCJzdWIiOiIxNCIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJ1c2VyIjoxNCwidXNlcl9maXJzdF9uYW1lIjoiZmlyc3ROYW1lIiwidXNlcl9sYXN0X25hbWUiOiJsYXN0TmFtZSJ9.k5Z1DruMSOO1kQVO7AAOdv6oDUkRwX7ajMS0hgK1TCo";
-
       const response = await axios.post(
         "/create/form",
         {
@@ -179,7 +177,7 @@ const FormSchemaBuilder = () => {
         {
           withCredentials: true,
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
@@ -191,224 +189,235 @@ const FormSchemaBuilder = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Form Schema Builder</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Form Details */}
-          <div className="mb-4 grid grid-cols-2 gap-4">
-            <div>
-              <Label>Form Name</Label>
-              <Input
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="Enter form name"
-              />
-            </div>
-            <div>
-              <Label>Form Description</Label>
-              <Input
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder="Enter form description"
-              />
-            </div>
-          </div>
-
-          {/* Sections */}
-          {sections.map((section, sectionIndex) => (
-            <Card key={sectionIndex} className="mb-4">
-              <CardContent>
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center space-x-2 w-full">
-                    <Input
-                      value={section.name}
-                      onChange={(e) => {
-                        const newSections = [...sections];
-                        newSections[sectionIndex].name = e.target.value;
-                        setSections(newSections);
-                      }}
-                      placeholder="Section Name"
-                      className="flex-grow"
-                    />
-
-                    {/* Reservation Status for Section */}
-                    <Select
-                      value={section.reservation_status_id}
-                      onValueChange={(value) => {
-                        const newSections = [...sections];
-                        const selectedStatus = RESERVATION_STATUSES.find(
-                          (status) => status.id === value
-                        );
-                        newSections[sectionIndex].reservation_status_id = value;
-                        newSections[sectionIndex].reservation_status_name =
-                          selectedStatus.name;
-                        setSections(newSections);
-                      }}
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Section Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {RESERVATION_STATUSES.map((status) => (
-                          <SelectItem key={status.id} value={status.id}>
-                            {status.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={section.required}
-                        onCheckedChange={(checked) => {
-                          const newSections = [...sections];
-                          newSections[sectionIndex].required = checked;
-                          setSections(newSections);
-                        }}
-                      />
-                      <Label>Required</Label>
-                    </div>
-
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => removeSection(sectionIndex)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+    <>
+      {currentView === "login" ? (
+        <Login />
+      ) : (
+        <div className="container mx-auto p-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Form Schema Builder</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Form Details */}
+              <div className="mb-4 grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Form Name</Label>
+                  <Input
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    placeholder="Enter form name"
+                  />
                 </div>
+                <div>
+                  <Label>Form Description</Label>
+                  <Input
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder="Enter form description"
+                  />
+                </div>
+              </div>
 
-                {/* Fields in Section */}
-                {section.fields.map((field, fieldIndex) => (
-                  <Card key={fieldIndex} className="mb-2 p-4 relative">
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2"
-                      onClick={() => removeField(sectionIndex, fieldIndex)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <div className="grid grid-cols-3 gap-4">
-                      <Input
-                        value={field.name}
-                        onChange={(e) =>
-                          updateField(sectionIndex, fieldIndex, {
-                            name: e.target.value,
-                          })
-                        }
-                        placeholder="Field Name"
-                      />
-
-                      <Select
-                        value={field.type}
-                        onValueChange={(value) =>
-                          updateField(sectionIndex, fieldIndex, {
-                            type: value,
-                            options: [], // Reset options when type changes
-                            customOptions: "", // Reset custom options when type changes
-                          })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Field Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {FIELD_TYPES.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.value}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      {/* Reservation Status for Field */}
-                      <Select
-                        value={field.reservation_status_id}
-                        onValueChange={(value) => {
-                          const selectedStatus = RESERVATION_STATUSES.find(
-                            (status) => status.id === value
-                          );
-                          updateField(sectionIndex, fieldIndex, {
-                            reservation_status_id: value,
-                            reservation_status_name: selectedStatus.name,
-                          });
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Field Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {RESERVATION_STATUSES.map((status) => (
-                            <SelectItem key={status.id} value={status.id}>
-                              {status.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      <div className="flex items-center">
-                        <Checkbox
-                          checked={field.required}
-                          onCheckedChange={(checked) =>
-                            updateField(sectionIndex, fieldIndex, {
-                              required: checked,
-                            })
-                          }
+              {/* Sections */}
+              {sections.map((section, sectionIndex) => (
+                <Card key={sectionIndex} className="mb-4">
+                  <CardContent>
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center space-x-2 w-full">
+                        <Input
+                          value={section.name}
+                          onChange={(e) => {
+                            const newSections = [...sections];
+                            newSections[sectionIndex].name = e.target.value;
+                            setSections(newSections);
+                          }}
+                          placeholder="Section Name"
+                          className="flex-grow"
                         />
-                        <Label>Required</Label>
+
+                        {/* Reservation Status for Section */}
+                        <Select
+                          value={section.reservation_status_id}
+                          onValueChange={(value) => {
+                            const newSections = [...sections];
+                            const selectedStatus = RESERVATION_STATUSES.find(
+                              (status) => status.id === value
+                            );
+                            newSections[sectionIndex].reservation_status_id =
+                              value;
+                            newSections[sectionIndex].reservation_status_name =
+                              selectedStatus.name;
+                            setSections(newSections);
+                          }}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Section Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {RESERVATION_STATUSES.map((status) => (
+                              <SelectItem key={status.id} value={status.id}>
+                                {status.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={section.required}
+                            onCheckedChange={(checked) => {
+                              const newSections = [...sections];
+                              newSections[sectionIndex].required = checked;
+                              setSections(newSections);
+                            }}
+                          />
+                          <Label>Required</Label>
+                        </div>
+
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => removeSection(sectionIndex)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
 
-                    {/* Custom Options Input */}
-                    {(field.type === "select" || field.type === "checkbox") && (
-                      <div className="mt-2">
-                        <Label>Custom Options (comma separated)</Label>
-                        <Input
-                          value={field.customOptions}
-                          onChange={(e) =>
-                            updateField(sectionIndex, fieldIndex, {
-                              customOptions: e.target.value,
-                            })
-                          }
-                          placeholder="Option1, Option2, Option3"
-                        />
-                      </div>
-                    )}
-                  </Card>
-                ))}
-                <Button onClick={() => addField(sectionIndex)} className="mt-2">
+                    {/* Fields in Section */}
+                    {section.fields.map((field, fieldIndex) => (
+                      <Card key={fieldIndex} className="mb-2 p-4 relative">
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2"
+                          onClick={() => removeField(sectionIndex, fieldIndex)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <div className="grid grid-cols-3 gap-4">
+                          <Input
+                            value={field.name}
+                            onChange={(e) =>
+                              updateField(sectionIndex, fieldIndex, {
+                                name: e.target.value,
+                              })
+                            }
+                            placeholder="Field Name"
+                          />
+
+                          <Select
+                            value={field.type}
+                            onValueChange={(value) =>
+                              updateField(sectionIndex, fieldIndex, {
+                                type: value,
+                                options: [], // Reset options when type changes
+                                customOptions: "", // Reset custom options when type changes
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Field Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {FIELD_TYPES.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                  {type.value}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
+                          {/* Reservation Status for Field */}
+                          <Select
+                            value={field.reservation_status_id}
+                            onValueChange={(value) => {
+                              const selectedStatus = RESERVATION_STATUSES.find(
+                                (status) => status.id === value
+                              );
+                              updateField(sectionIndex, fieldIndex, {
+                                reservation_status_id: value,
+                                reservation_status_name: selectedStatus.name,
+                              });
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Field Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {RESERVATION_STATUSES.map((status) => (
+                                <SelectItem key={status.id} value={status.id}>
+                                  {status.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
+                          <div className="flex items-center">
+                            <Checkbox
+                              checked={field.required}
+                              onCheckedChange={(checked) =>
+                                updateField(sectionIndex, fieldIndex, {
+                                  required: checked,
+                                })
+                              }
+                            />
+                            <Label>Required</Label>
+                          </div>
+                        </div>
+
+                        {/* Custom Options Input */}
+                        {(field.type === "select" ||
+                          field.type === "checkbox") && (
+                          <div className="mt-2">
+                            <Label>Custom Options (comma separated)</Label>
+                            <Input
+                              value={field.customOptions}
+                              onChange={(e) =>
+                                updateField(sectionIndex, fieldIndex, {
+                                  customOptions: e.target.value,
+                                })
+                              }
+                              placeholder="Option1, Option2, Option3"
+                            />
+                          </div>
+                        )}
+                      </Card>
+                    ))}
+                    <Button
+                      onClick={() => addField(sectionIndex)}
+                      className="mt-2"
+                    >
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Add Field
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+              <div className="flex items-center gap-4">
+                <Button onClick={addSection} className="mt-4">
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Field
+                  Add Section
                 </Button>
-              </CardContent>
-            </Card>
-          ))}
-          <div className="flex items-center gap-4">
-            <Button onClick={addSection} className="mt-4">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Section
-            </Button>
 
-            {/* Generate Schema Button */}
-            <Button onClick={handleGenerateSchema} className="mt-4">
-              Generate Schema
-            </Button>
-          </div>
+                {/* Generate Schema Button */}
+                <Button onClick={handleGenerateSchema} className="mt-4">
+                  Generate Schema
+                </Button>
+              </div>
 
-          {/* Display Generated Schema */}
-          {generatedSchema && (
-            <pre className="mt-4 bg-gray-100 p-4 rounded-md">
-              {JSON.stringify(generatedSchema, null, 2)}
-            </pre>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+              {/* Display Generated Schema */}
+              {generatedSchema && (
+                <pre className="mt-4 bg-gray-100 p-4 rounded-md">
+                  {JSON.stringify(generatedSchema, null, 2)}
+                </pre>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </>
   );
 };
 
