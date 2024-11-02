@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_CONFIG } from '@/config';
+// import { API_CONFIG } from '@/config';
 
 function Login({ setIsLoggedIn }) {
   const navigate = useNavigate();

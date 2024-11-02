@@ -18,7 +18,7 @@ import {
   FIELD_TYPES,
   processCustomOptions,
   validateSchema,
-} from "./lib/utils";
+} from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/tooltip";
 import { InfoIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { API_CONFIG } from "@/config";
 
 const FormSchemaBuilder = ({ handleLogout }) => {
   const [formName, setFormName] = useState("");

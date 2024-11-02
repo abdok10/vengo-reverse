@@ -1,10 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import Login from "./Login";
-import FormBuilder from "./FormBuilder";
-import FormDisplay from "./components/FormDisplay";
+
+import Login from "@/app/Login";
+import FormBuilder from "@/app/FormBuilder";
+import FormPreview from "@/components/FormPreview";
 import { Toaster } from "@/components/ui/sonner";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -50,7 +51,7 @@ function App() {
           path="/form-display/:formId"
           element={
             <ProtectedRoute isLoggedIn={isLoggedIn}>
-              <FormDisplay handleLogout={handleLogout} />
+              <FormPreview handleLogout={handleLogout} />
             </ProtectedRoute>
           }
         />
