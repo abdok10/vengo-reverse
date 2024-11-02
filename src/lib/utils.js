@@ -5,8 +5,6 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
-// FormBuilderUtils.js
-
 export const RESERVATION_STATUSES = [
   { id: "1", name: "active" },
   { id: "2", name: "inactive" },
