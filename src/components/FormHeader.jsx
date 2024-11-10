@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import PropTypes from "prop-types";
 
 export default function FormHeader({ handleLogout }) {
   return (
@@ -10,3 +11,7 @@ export default function FormHeader({ handleLogout }) {
     </div>
   );
 }
+
+FormHeader.propTypes = {
+  handleLogout: PropTypes.func.isRequired,
+};

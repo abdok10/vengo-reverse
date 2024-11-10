@@ -57,7 +57,6 @@ const FormDisplay = ({ handleLogout }) => {
     setIsSubmitting(true);
 
     try {
-      // Structure the data in the desired format
       const formattedData = {
         form_name: storedForm.schema.name,
         form_description: storedForm.schema.description,
@@ -88,8 +87,7 @@ const FormDisplay = ({ handleLogout }) => {
         })),
       };
 
-      console.log("Formatted Form Data:", formattedData);
-      setSubmittedData(formattedData); // Set the submitted data to state
+      setSubmittedData(formattedData); 
     } catch (error) {
       toast.error("Failed to submit form");
       console.error(error);
