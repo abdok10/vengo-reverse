@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-// import { API_CONFIG } from '@/config';
+import PropTypes from "prop-types";
 
 function Login({ setIsLoggedIn }) {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("test@test.com");
+  const [password, setPassword] = useState("test@test.com");
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -15,21 +15,23 @@ function Login({ setIsLoggedIn }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`//xapi.vengoreserve.com/api/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
       const data = await response.json();
       console.log({ data });
-      
+
       const { token } = data;
-      console.log({ token });
       if (!token) {
         throw new Error("No token received from server");
       }
@@ -39,7 +41,7 @@ function Login({ setIsLoggedIn }) {
       navigate("/form-builder");
     } catch (err) {
       const errorMessage =
-        err.response?.data?.message ||
+        err.response?.data?.error ||
         "Login failed. Please check your credentials.";
       setError(errorMessage);
       console.error("Login error:", err);
@@ -124,7 +126,7 @@ function Login({ setIsLoggedIn }) {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Logging in...
+                Sign in...
               </>
             ) : (
               "Sign In"
@@ -141,5 +143,9 @@ function Login({ setIsLoggedIn }) {
     </div>
   );
 }
+
+Login.propTypes = {
+  setIsLoggedIn: PropTypes.func.isRequired,
+};
 
 export default Login;

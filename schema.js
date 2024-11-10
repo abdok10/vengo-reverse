@@ -1,4 +1,4 @@
-const schema = {
+export const schema = {
   name: "F1XwX11", // required unique
   description: "form_description", // nullable
   account_id: 2, //required (1 - 10 )

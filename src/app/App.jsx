@@ -19,6 +19,7 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("currentFormSchema");
     setIsLoggedIn(false);
   };
 
@@ -58,7 +59,7 @@ function App() {
         <Route path="/" element={<Navigate to="/form-builder" replace />} />
         <Route path="*" element={<Navigate to="/form-builder" replace />} />
       </Routes>
-      <Toaster position="top-center" richColors />
+      <Toaster position="top-right" />
     </BrowserRouter>
   );
 }

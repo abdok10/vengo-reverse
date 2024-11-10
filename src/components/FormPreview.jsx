@@ -20,14 +20,14 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import FormHeader from "@/components/FormHeader";
+import PropTypes from "prop-types";
 
 const FormDisplay = ({ handleLogout }) => {
   const navigate = useNavigate();
-//   const { formId } = useParams();
-
   const [formData, setFormData] = useState({});
   const [storedForm, setStoredForm] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedData, setSubmittedData] = useState(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("currentFormSchema");
@@ -64,18 +64,32 @@ const FormDisplay = ({ handleLogout }) => {
         account_id: storedForm.schema.account_id,
         template: storedForm.schema.template.map((section, sectionIndex) => ({
           section_name: section.section_name,
-          fields: section.fields.map((field) => ({
-            field_name: field.name,
-            type: field.type,
-            required: field.required,
-            options: field.options,
-            value: formData[`section${sectionIndex}-${section.section_name}-${field.name}`],
-          })),
+          fields: section.fields.map((field) => {
+            const value =
+              formData[
+                `section${sectionIndex}-${section.section_name}-${field.name}`
+              ];
+
+            // Only include selected values for select and checkbox types
+            return {
+              field_name: field.name,
+              type: field.type,
+              required: field.required,
+              options:
+                field.type === "select" || field.type === "checkbox"
+                  ? field.options
+                  : undefined,
+              value:
+                field.type === "select" || field.type === "checkbox"
+                  ? value
+                  : value,
+            };
+          }),
         })),
       };
 
       console.log("Formatted Form Data:", formattedData);
-      toast.success("Form submitted successfully");
+      setSubmittedData(formattedData); // Set the submitted data to state
     } catch (error) {
       toast.error("Failed to submit form");
       console.error(error);
@@ -85,7 +99,8 @@ const FormDisplay = ({ handleLogout }) => {
   };
 
   const renderField = (field, sectionIndex, fieldIndex) => {
-    const fieldValue = formData[`section${sectionIndex}-${field.section_name}-${field.name}`];
+    const fieldValue =
+      formData[`section${sectionIndex}-${field.section_name}-${field.name}`];
 
     switch (field.type) {
       case "text":
@@ -203,7 +218,11 @@ const FormDisplay = ({ handleLogout }) => {
                 field.name
               )
             }
-            placeholder={field.options?.[0] ? `Enter ${field.options[0]}` : `Enter URL for ${field.name.toLowerCase()}`}
+            placeholder={
+              field.options?.[0]
+                ? `Enter ${field.options[0]}`
+                : `Enter URL for ${field.name.toLowerCase()}`
+            }
             required={field.required}
             className="bg-white"
           />
@@ -228,11 +247,11 @@ const FormDisplay = ({ handleLogout }) => {
 
   return (
     <>
-      <div className="container mx-auto p-4">
+      <div className="max-w-[1200px] mx-auto p-4">
         <FormHeader handleLogout={handleLogout} />
 
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold text-sky-700">Form Preview</h1>
+        <div className="flex justify-between items-center mb-4 mt-10">
+          <h1 className="text-2xl font-bold ">Form Preview</h1>
           <Button variant="outline" onClick={() => navigate("/form-builder")}>
             Back to Form Builder
           </Button>
@@ -287,9 +306,30 @@ const FormDisplay = ({ handleLogout }) => {
             </CardContent>
           </Card>
         </form>
+
+        {submittedData && (
+          <>
+            <Card className="my-4">
+              <CardHeader>
+                <CardTitle>
+                  Generated Schema (just for testing, Not the submitted data)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="bg-gray-700 text-white p-4 rounded-lg overflow-auto max-h-96">
+                  {JSON.stringify(submittedData, null, 2)}
+                </pre>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </>
   );
+};
+
+FormDisplay.propTypes = {
+  handleLogout: PropTypes.func.isRequired,
 };
 
 export default FormDisplay;

@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { InfoIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import PropTypes from "prop-types";
 
 const FormSchemaBuilder = ({ handleLogout }) => {
   const [formName, setFormName] = useState("");
@@ -34,7 +35,7 @@ const FormSchemaBuilder = ({ handleLogout }) => {
   const [sections, setSections] = useState([]);
   const [generatedSchema, setGeneratedSchema] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [accountId, setAccountId] = useState(1);
+  const [accountId, setAccountId] = useState(6);
   const [expandedSections, setExpandedSections] = useState({});
   const navigate = useNavigate();
 
@@ -42,7 +43,7 @@ const FormSchemaBuilder = ({ handleLogout }) => {
     setSections((prevSections) => [
       ...prevSections,
       {
-        name: `Section ${prevSections.length + 1}`,
+        name: `"Section ${prevSections.length + 1}"`,
         fields: [],
         required: false,
         reservation_status_name: "active",
@@ -94,57 +95,61 @@ const FormSchemaBuilder = ({ handleLogout }) => {
     });
   };
 
+  const generateSchema = () => {
+    let currentFieldId = 1;
+
+    sections.forEach((section) => {
+      if (section.required) {
+        const nonRequiredFields = section.fields.filter(
+          (field) => !field.required
+        );
+        if (nonRequiredFields.length > 0) {
+          throw new Error(
+            `All fields in required section "${section.name}" must be marked as required`
+          );
+        }
+      }
+    });
+
+    const schema = {
+      name: formName.trim(),
+      description: formDescription.trim() || null,
+      account_id: parseInt(accountId),
+      template: sections.map((section) => ({
+        section_name: section.name.trim(),
+        required: Boolean(section.required),
+        reservation_status_name: section.reservation_status_name || "active",
+        reservation_status_id: section.reservation_status_id,
+        fields: section.fields.map((field) => {
+          const fieldType = FIELD_TYPES.find((t) => t.value === field.type);
+          let options = [];
+
+          if (field.type === "select" || field.type === "checkbox") {
+            options = processCustomOptions(field.customOptions);
+          } else if (fieldType && fieldType.options.length > 0) {
+            options = fieldType.options;
+          }
+
+          return {
+            field_id: currentFieldId++,
+            name: field.name.trim(),
+            type: field.type,
+            options: options,
+            required: Boolean(field.required),
+            reservation_status_name: field.reservation_status_name || "active",
+            reservation_status_id: field.reservation_status_id,
+          };
+        }),
+      })),
+    };
+
+    validateSchema(schema);
+    return schema;
+  };
+
   const handleGenerateSchema = async () => {
     try {
-      let currentFieldId = 1;
-
-      sections.forEach((section) => {
-        if (section.required) {
-          const nonRequiredFields = section.fields.filter(
-            (field) => !field.required
-          );
-          if (nonRequiredFields.length > 0) {
-            throw new Error(
-              `All fields in required section "${section.name}" must be marked as required`
-            );
-          }
-        }
-      });
-
-      const schema = {
-        name: formName.trim(),
-        description: formDescription.trim() || null,
-        account_id: parseInt(accountId),
-        template: sections.map((section) => ({
-          section_name: section.name.trim(),
-          required: Boolean(section.required),
-          reservation_status_name: section.reservation_status_name || "active",
-          reservation_status_id: section.reservation_status_id,
-          fields: section.fields.map((field) => {
-            const fieldType = FIELD_TYPES.find((t) => t.value === field.type);
-            let options = [];
-
-            if (field.type === "select" || field.type === "checkbox") {
-              options = processCustomOptions(field.customOptions);
-            } else if (fieldType && fieldType.options.length > 0) {
-              options = fieldType.options;
-            }
-
-            return {
-              field_id: currentFieldId++,
-              name: field.name.trim(),
-              type: field.type,
-              options: options,
-              required: Boolean(field.required),
-              reservation_status_name:
-                field.reservation_status_name || "active",
-              reservation_status_id: field.reservation_status_id,
-            };
-          }),
-        })),
-      };
-
-      validateSchema(schema);
+      const schema = generateSchema();
       setGeneratedSchema(schema);
       toast.success("Schema generated successfully");
       return schema;
@@ -170,16 +175,19 @@ const FormSchemaBuilder = ({ handleLogout }) => {
       }
 
       setIsSubmitting(true);
-      const schema = await handleGenerateSchema();
+      const schema = generateSchema();
 
-      const response = await fetch(`//xapi.vengoreserve.com/api/create/form`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(schema),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/create/form`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(schema),
+        }
+      );
 
       const data = await response.json();
 
@@ -230,7 +238,7 @@ const FormSchemaBuilder = ({ handleLogout }) => {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="max-w-[1200px] mx-auto p-4">
       <div className="flex justify-end mb-4">
         <div className="text-3xl font-bold text-sky-700">Vengo Reverse</div>
         <Button
@@ -241,7 +249,7 @@ const FormSchemaBuilder = ({ handleLogout }) => {
           Logout
         </Button>
       </div>
-      <Card>
+      <Card className="mt-10">
         <CardHeader>
           <CardTitle>Form Schema Builder</CardTitle>
         </CardHeader>
@@ -273,6 +281,7 @@ const FormSchemaBuilder = ({ handleLogout }) => {
               min="1"
               max="10"
               value={accountId}
+              disabled
               onChange={(e) => setAccountId(e.target.value)}
               className="w-32 bg-white"
             />
@@ -393,7 +402,7 @@ const FormSchemaBuilder = ({ handleLogout }) => {
                       <Card key={fieldIndex} className="my-4 bg-gray-100">
                         <CardContent className="py-4">
                           <div className="space-y-2">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <Input
                                 value={field.name}
                                 onChange={(e) =>
@@ -578,17 +587,16 @@ const FormSchemaBuilder = ({ handleLogout }) => {
                                   }}
                                 />
                                 <Label>Required</Label>
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  onClick={() =>
+                                    removeField(sectionIndex, fieldIndex)
+                                  }
+                                >
+                                  <Trash2 className="size-4" />
+                                </Button>
                               </div>
-
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                onClick={() =>
-                                  removeField(sectionIndex, fieldIndex)
-                                }
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
                             </div>
                           </div>
                         </CardContent>
@@ -634,7 +642,9 @@ const FormSchemaBuilder = ({ handleLogout }) => {
           {generatedSchema && (
             <Card className="my-4">
               <CardHeader>
-                <CardTitle>Generated Schema</CardTitle>
+                <CardTitle>
+                  Generated Schema
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <pre className="bg-gray-700 text-white p-4 rounded-lg overflow-auto max-h-96">
@@ -647,6 +657,10 @@ const FormSchemaBuilder = ({ handleLogout }) => {
       </Card>
     </div>
   );
+};
+
+FormSchemaBuilder.propTypes = {
+  handleLogout: PropTypes.func.isRequired,
 };
 
 export default FormSchemaBuilder;
