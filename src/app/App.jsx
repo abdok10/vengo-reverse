@@ -49,7 +49,7 @@ function App() {
           }
         />
         <Route
-          path="/form-display/:formId"
+          path="/form-display"
           element={
             <ProtectedRoute isLoggedIn={isLoggedIn}>
               <FormPreview handleLogout={handleLogout} />

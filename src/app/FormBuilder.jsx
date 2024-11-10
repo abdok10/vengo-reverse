@@ -177,54 +177,25 @@ const FormSchemaBuilder = ({ handleLogout }) => {
       setIsSubmitting(true);
       const schema = generateSchema();
 
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/create/form`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(schema),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 409) {
-          throw new Error(
-            data.message || "A form with this name already exists"
-          );
-        }
-        throw new Error(
-          data.message || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      // Store the schema and form data in localStorage
+      // Store the schema in localStorage
       localStorage.setItem(
         "currentFormSchema",
         JSON.stringify({
           schema,
-          formData: data,
           timestamp: new Date().toISOString(),
         })
       );
 
       toast.success("Form submitted successfully");
-
-      console.log({ data });
-      const formId = data.id || "new";
-      navigate(`/form-display/${formId}`);
+      navigate(`/form-display`);
 
       setFormName("");
       setFormDescription("");
       setSections([]);
       setGeneratedSchema(null);
     } catch (error) {
-      console.error("Error submitting form:", error);
-      toast.error(error.message || "Failed to submit form");
+      console.error("Error storing schema:", error);
+      toast.error(error.message || "Failed to store schema");
     } finally {
       setIsSubmitting(false);
     }
@@ -642,9 +613,7 @@ const FormSchemaBuilder = ({ handleLogout }) => {
           {generatedSchema && (
             <Card className="my-4">
               <CardHeader>
-                <CardTitle>
-                  Generated Schema
-                </CardTitle>
+                <CardTitle>Generated Schema</CardTitle>
               </CardHeader>
               <CardContent>
                 <pre className="bg-gray-700 text-white p-4 rounded-lg overflow-auto max-h-96">
